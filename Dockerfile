@@ -1,71 +1,50 @@
 FROM ubuntu:15.04
 MAINTAINER David Montecillo <montecillodavid@gmail.com>
 
-ENV ANDROID_HOME /opt/android-sdk-linux
-ENV ANDROID_NDK_HOME /opt/android-ndk-r13b
-ENV GRADLE_USER_HOME /opt/gradle
+ENV VERSION_SDK_TOOLS "25.2.3"
+ENV VERSION_BUILD_TOOLS "25.0.2"
+ENV VERSION_TARGET_SDK "25"
 
-# 更换 Ubuntu 镜像更新地址
-#RUN echo "deb http://mirrors.163.com/ubuntu/ trusty main restricted universe multiverse\n\
-#deb http://mirrors.163.com/ubuntu/ trusty-security main restricted universe multiverse\n\
-#deb http://mirrors.163.com/ubuntu/ trusty-updates main restricted universe multiverse\n\
-#deb http://mirrors.163.com/ubuntu/ trusty-proposed main restricted universe multiverse\n\
-#deb http://mirrors.163.com/ubuntu/ trusty-backports main restricted universe multiverse\n\
-#deb-src http://mirrors.163.com/ubuntu/ trusty main restricted universe multiverse\n\
-#deb-src http://mirrors.163.com/ubuntu/ trusty-security main restricted universe multiverse\n\
-#deb-src http://mirrors.163.com/ubuntu/ trusty-updates main restricted universe multiverse\n\
-#deb-src http://mirrors.163.com/ubuntu/ trusty-proposed main restricted universe multiverse\n\
-#deb-src http://mirrors.163.com/ubuntu/ trusty-backports main restricted universe multiverse" > /etc/apt/sources.list
-
-# 安装基础包
-RUN apt-get update -qq && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y curl wget unzip openjdk-7-jdk openjdk-8-jdk libc6-i386 lib32stdc++6 lib32gcc1 lib32ncurses5 lib32z1 && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-# 安装 SDK
-RUN cd /opt && \
-    curl -s https://dl.google.com/android/android-sdk_r24.4.1-linux.tgz > android-sdk.tgz && \
-    tar -xvzf android-sdk.tgz && \
-    curl -s https://dl.google.com/android/repository/android-ndk-r13b-linux-x86_64.zip > android-ndk.zip && \
-    unzip android-ndk.zip && \
-    rm -f android-sdk.tgz android-ndk.zip
-
-# 安装 CMake
-RUN mkdir -p ${ANDROID_HOME}/cmake && \
-    cd ${ANDROID_HOME}/cmake && \
-    curl -s https://dl.google.com/android/repository/cmake-3.6.3155560-linux-x86_64.zip > cmake.zip && \
-    unzip cmake.zip && \
-    rm -f cmake.zip
-
-ENV PATH ${PATH}:${ANDROID_HOME}/tools:${ANDROID_HOME}/platform-tools:${ANDROID_NDK_HOME}
-
-# 更新 SDK
-RUN echo y | android update sdk --no-ui --all --filter \
-  build-tools-25.0.2,build-tools-25.0.1,build-tools-25.0.0,build-tools-24.0.3,build-tools-24.0.2,build-tools-24.0.1,build-tools-24.0.0,build-tools-23.0.3,build-tools-23.0.2,build-tools-23.0.1,build-tools-22.0.1,build-tools-21.1.2,build-tools-20.0.0,build-tools-19.1.0
-
-RUN echo y | android update sdk --no-ui --all --filter \
-  android-25,android-24,android-23,android-22,android-21,android-20,android-19,android-17,android-15
-
-RUN echo y | android update sdk --no-ui --all --filter \
-  addon-google_apis-google-24,addon-google_apis-google-23,addon-google_apis-google-22,addon-google_apis-google-21,addon-google_apis-google-19,addon-google_apis-google-17,addon-google_apis-google-15
-
-RUN echo y | android update sdk --no-ui --all --filter \
-  platform-tools,extra-android-m2repository,extra-android-support,extra-google-google_play_services,extra-google-m2repository
-
-# 安装 gradle
-COPY gradle/ /opt/
+ENV VERSION_ANDROID_NDK "android-ndk-r12b"
+ENV ANDROID_NDK_HOME "/sdk/${VERSION_ANDROID_NDK}"
 
 
-# gradlew 版本列表
-#   https://services.gradle.org/distributions/
-# android-tools 版本列表
-#   https://bintray.com/android/android-tools/com.android.tools.build.gradle#files/com/android/tools/build/gradle
-RUN cd /opt && \
-    chmod +x gradlew && \
-    bash ./gradle_install.sh 3.3 3.2.1 3.2 3.1 3.0 2.14.1 2.14 2.13 2.12 2.11 && \
-    bash ./gradle_plugin.sh 2.2.3 2.2.2 2.2.1 2.2.0 2.1.3 2.1.2 2.1.0 2.0.0 && \
-    rm -rf gradle_install.sh gradle_plugin.sh build.gradle gradlew gradle/wrapper/gradle-wrapper.{jar,properties}
+ENV SDK_PACKAGES "build-tools-${VERSION_BUILD_TOOLS},android-${VERSION_TARGET_SDK},addon-google_apis-google-${VERSION_TARGET_SDK},platform-tools,extra-android-m2repository,extra-android-support,extra-google-google_play_services,extra-google-m2repository"
+
+ENV ANDROID_HOME "/sdk"
+ENV PATH "$PATH:${ANDROID_HOME}/tools"
+ENV DEBIAN_FRONTEND noninteractive
+
+RUN apt-get -qq update && \
+    apt-get install -qqy --no-install-recommends \
+      build-essential \ 
+      file \ 
+      curl \
+      html2text \
+      openjdk-8-jdk \
+      libc6-i386 \
+      lib32stdc++6 \
+      lib32gcc1 \
+      lib32ncurses5 \
+      lib32z1 \
+      unzip \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+RUN rm -f /etc/ssl/certs/java/cacerts; \
+    /var/lib/dpkg/info/ca-certificates-java.postinst configure
+
+RUN curl -s http://dl.google.com/android/repository/tools_r${VERSION_SDK_TOOLS}-linux.zip > /tools.zip && \
+    unzip /tools.zip -d /sdk && \
+    rm -v /tools.zip
 
 RUN mkdir -p $ANDROID_HOME/licenses/ \
   && echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license \
+  && echo "84831b9409646a918e30573bab4c9c91346d8abd" > $ANDROID_HOME/licenses/android-sdk-preview-license
+
+RUN (while [ 1 ]; do sleep 5; echo y; done) | ${ANDROID_HOME}/tools/android update sdk -u -a -t ${SDK_PACKAGES}
+
+
+ADD https://dl.google.com/android/repository/${VERSION_ANDROID_NDK}-linux-x86_64.zip /ndk.zip
+RUN unzip /ndk.zip -d /sdk && \
+    rm -v /ndk.zip
 
