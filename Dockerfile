@@ -55,8 +55,6 @@ RUN echo y | android update sdk --no-ui --all --filter \
 # 安装 gradle
 COPY gradle/ /opt/
 
-RUN mkdir -p $ANDROID_HOME/licenses/ \
-  && echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license \
 
 # gradlew 版本列表
 #   https://services.gradle.org/distributions/
@@ -67,4 +65,7 @@ RUN cd /opt && \
     bash ./gradle_install.sh 3.3 3.2.1 3.2 3.1 3.0 2.14.1 2.14 2.13 2.12 2.11 && \
     bash ./gradle_plugin.sh 2.2.3 2.2.2 2.2.1 2.2.0 2.1.3 2.1.2 2.1.0 2.0.0 && \
     rm -rf gradle_install.sh gradle_plugin.sh build.gradle gradlew gradle/wrapper/gradle-wrapper.{jar,properties}
+
+RUN mkdir -p $ANDROID_HOME/licenses/ \
+  && echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license \
 
