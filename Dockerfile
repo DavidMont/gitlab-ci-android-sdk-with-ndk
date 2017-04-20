@@ -1,5 +1,5 @@
 FROM ubuntu:15.04
-MAINTAINER yewenju <wuyougan@163.com>
+MAINTAINER David Montecillo <montecillodavid@gmail.com>
 
 ENV ANDROID_HOME /opt/android-sdk-linux
 ENV ANDROID_NDK_HOME /opt/android-ndk-r13b
@@ -54,6 +54,9 @@ RUN echo y | android update sdk --no-ui --all --filter \
 
 # 安装 gradle
 COPY gradle/ /opt/
+
+RUN mkdir -p $ANDROID_HOME/licenses/ \
+  && echo "8933bad161af4178b1185d1a37fbf41ea5269c55" > $ANDROID_HOME/licenses/android-sdk-license \
 
 # gradlew 版本列表
 #   https://services.gradle.org/distributions/
